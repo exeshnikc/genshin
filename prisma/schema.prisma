@@ -1,0 +1,53 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  name      String
+  email     String   @unique
+  password  String
+  role      String   @default("USER")  // USER или ADMIN
+  createdAt DateTime @default(now())
+  
+  favorites   Favorite[]
+  collected   Collected[]
+}
+
+model Book {
+  id          String   @id @default(cuid())
+  title       String
+  author      String
+  region      String
+  content     String
+  coverUrl    String
+  createdAt   DateTime @default(now())
+  
+  favorites   Favorite[]
+  collected   Collected[]
+}
+
+model Favorite {
+  id        String   @id @default(cuid())
+  userId    String
+  bookId    String
+  addedAt   DateTime @default(now())
+  
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  book Book @relation(fields: [bookId], references: [id], onDelete: Cascade)
+}
+
+model Collected {
+  id        String   @id @default(cuid())
+  userId    String
+  bookId    String
+  addedAt   DateTime @default(now())
+  
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  book Book @relation(fields: [bookId], references: [id], onDelete: Cascade)
+}

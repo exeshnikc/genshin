@@ -1,26 +1,21 @@
-import { NextResponse } from 'next/server';
-import * as genshindb from 'genshin-db';
+import { NextResponse } from 'next/server'
+import { prisma } from '@/lib/prisma'
 
-export async function GET() {
-    try {
-        // Получаем все книги из библиотеки genshin-db
-        // Сортируем по регионам для удобства
-        const allBooks = genshindb.books('all', { matchCategories: true });
-        
-        // Приводим к формату для фронта
-        const formattedBooks = allBooks.map(book => ({
-            id: book.id,
-            title: book.name,
-            author: book.author || 'Неизвестный автор',
-            region: book.region || 'Teyvat',
-            coverUrl: `/covers/${book.id}.png`, // Плейсхолдер
-            description: book.description
-        }));
+export async function GET(
+  _request: Request,
+  { params }: { params: { id: string } }
+) {
+  const book = await prisma.book.findUnique({ where: { id: params.id } })
+  if (!book) return NextResponse.json({ error: 'Not found' }, { status: 404 })
+  return NextResponse.json(book)
+}
 
-        return NextResponse.json({ books: formattedBooks });
-    } catch (error) {
-        console.error(error);
-        // Фолбэк: если пакет не нашел, возвращаем структуру для отладки
-        return NextResponse.json({ books: [], error: "Data source error" }, { status: 500 });
-    }
+export async function DELETE(
+  _request: Request,
+  { params }: { params: { id: string } }
+) {
+  await prisma.favorite.deleteMany({ where: { bookId: params.id } })
+  await prisma.collected.deleteMany({ where: { bookId: params.id } })
+  await prisma.book.delete({ where: { id: params.id } })
+  return NextResponse.json({ success: true })
 }

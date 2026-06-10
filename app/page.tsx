@@ -55,7 +55,7 @@ export default function Home() {
     try {
       const res = await fetch(`/api/books?search=${encodeURIComponent(search)}&region=${encodeURIComponent(region)}`)
       const data = await res.json()
-      setBooks(data)
+      setBooks(data.books)
     } catch {
       setBooks([])
     }

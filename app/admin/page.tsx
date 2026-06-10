@@ -63,7 +63,7 @@ export default function AdminPage() {
   }
 
   const loadUsers  = async () => { const r = await fetch('/api/admin/users'); if (r.ok) setUsers(await r.json()) }
-  const loadBooks  = async () => { const r = await fetch('/api/books');        if (r.ok) setBooks(await r.json()) }
+  const loadBooks  = async () => { const r = await fetch('/api/books');        if (r.ok) setBooks((await r.json()).books) }
   const loadStats  = async () => { const r = await fetch('/api/admin/stats');  if (r.ok) setStats(await r.json()) }
 
   const changeUserRole = async (userId: string, newRole: string) => {

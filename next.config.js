@@ -8,10 +8,6 @@ const nextConfig = {
   webpack: (config) => {
     return config;
   },
-  // Используем простой CSS без Tailwind
-  experimental: {
-    turbopack: false,
-  },
 }
 
 module.exports = nextConfig

@@ -10,49 +10,79 @@ interface BookCardProps {
   coverUrl: string
 }
 
+const REGION_COLORS: Record<string, { from: string; to: string }> = {
+  'Мондштадт': { from: 'rgba(34,197,94,0.25)', to: 'rgba(21,128,61,0.25)' },
+  'Ли Юэ':    { from: 'rgba(234,179,8,0.25)',  to: 'rgba(202,138,4,0.25)' },
+  'Инадзума':  { from: 'rgba(168,85,247,0.25)', to: 'rgba(219,39,119,0.25)' },
+  'Сумеру':    { from: 'rgba(16,185,129,0.25)', to: 'rgba(20,184,166,0.25)' },
+  'Фонтейн':   { from: 'rgba(59,130,246,0.25)', to: 'rgba(6,182,212,0.25)' },
+  'Натлан':    { from: 'rgba(239,68,68,0.25)',  to: 'rgba(234,88,12,0.25)' },
+  'Снежная':   { from: 'rgba(147,197,253,0.25)', to: 'rgba(186,230,253,0.25)' },
+}
+
 export default function BookCard({ id, title, author, region, coverUrl }: BookCardProps) {
-  // Функция для получения цвета региона
-  const getRegionColor = (region: string) => {
-    const colors: Record<string, string> = {
-      'Мондштадт': 'from-green-600/30 to-green-800/30',
-      'Ли Юэ': 'from-yellow-600/30 to-orange-800/30',
-      'Инадзума': 'from-purple-600/30 to-pink-800/30',
-      'Сумеру': 'from-emerald-600/30 to-teal-800/30',
-      'Фонтейн': 'from-blue-500/30 to-cyan-700/30',
-    }
-    return colors[region] || 'from-gray-600/30 to-gray-800/30'
-  }
+  const colors = REGION_COLORS[region] || { from: 'rgba(100,100,100,0.2)', to: 'rgba(50,50,50,0.2)' }
 
   return (
-    <div className={`book-card bg-gradient-to-b ${getRegionColor(region)} bg-[#2f241b] rounded-xl overflow-hidden shadow-2xl border border-[#e4b574]/30 backdrop-blur-sm`}>
-      <div className="relative h-48 bg-gradient-to-b from-[#e4b574]/20 to-transparent">
+    <div
+      className="book-card rounded-xl overflow-hidden shadow-xl border"
+      style={{
+        background: `linear-gradient(160deg, color-mix(in srgb, var(--bg-card) 85%, transparent), var(--bg-card)), linear-gradient(160deg, ${colors.from}, ${colors.to})`,
+        borderColor: 'var(--border)',
+        backdropFilter: 'blur(4px)',
+      }}
+    >
+      <div
+        className="relative h-52 overflow-hidden"
+        style={{ background: `linear-gradient(160deg, ${colors.from}, ${colors.to})` }}
+      >
         {coverUrl ? (
-          <img src={coverUrl} alt={title} className="w-full h-full object-cover" />
+          <img
+            src={coverUrl}
+            alt={title}
+            className="w-full h-full object-cover transition-transform duration-500 hover:scale-110"
+          />
         ) : (
-          <div className="w-full h-full flex items-center justify-center">
-            <div className="text-center">
-              <svg className="w-16 h-16 mx-auto text-[#e4b574]/50" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M4 6h16v2H4V6zm2-4h12v2H6V2zm16 4H2v16h20V6zM4 8h16v10H4V8z"/>
-              </svg>
-              <span className="text-[#e4b574] text-sm mt-2 block">{title}</span>
-            </div>
+          <div className="w-full h-full flex flex-col items-center justify-center gap-2 p-4">
+            <svg
+              className="w-14 h-14 opacity-50"
+              fill="currentColor"
+              viewBox="0 0 24 24"
+              style={{ color: 'var(--accent)' }}
+            >
+              <path d="M6 2h12a2 2 0 012 2v16a2 2 0 01-2 2H6a2 2 0 01-2-2V4a2 2 0 012-2zm0 2v16h12V4H6zm2 2h8v2H8V6zm0 4h8v2H8v-2zm0 4h5v2H8v-2z" />
+            </svg>
+            <span className="text-center text-xs font-medium leading-tight" style={{ color: 'var(--accent)' }}>
+              {title}
+            </span>
           </div>
         )}
-        <div className="absolute top-2 right-2">
-          <div className="w-8 h-8 bg-[#e4b574]/20 rounded-full flex items-center justify-center backdrop-blur-sm">
-            <span className="text-[#e4b574] text-xs">✦</span>
-          </div>
-        </div>
+
+        <div
+          className="absolute bottom-0 left-0 right-0 h-16"
+          style={{ background: 'linear-gradient(to top, var(--bg-card), transparent)' }}
+        />
       </div>
-      
-      <div className="p-5">
-        <h3 className="text-xl font-bold text-[#e4b574] mb-1 font-[Cinzel]">{title}</h3>
-        <p className="text-[#b98b5f] text-sm mb-1">Автор: {author}</p>
-        <p className="text-[#b98b5f] text-sm mb-4">Регион: {region}</p>
-        
+
+      <div className="p-4">
+        <h3
+          className="text-lg font-bold font-[Cinzel] mb-1 line-clamp-2 leading-snug"
+          style={{ color: 'var(--accent)' }}
+        >
+          {title}
+        </h3>
+        <p className="text-xs mb-0.5 truncate" style={{ color: 'var(--text-secondary)' }}>
+          {author}
+        </p>
+        <p className="text-xs mb-4" style={{ color: 'var(--text-secondary)' }}>
+          {region}
+        </p>
+
         <Link href={`/book/${id}`}>
-          <button className="btn-gold btn-shimmer w-full text-[#1a120b] font-bold py-2.5 rounded-lg transition-all flex items-center justify-center gap-2">
-            <span>📖</span>
+          <button
+            className="btn-gold btn-shimmer w-full font-bold py-2.5 rounded-lg flex items-center justify-center gap-2 text-sm"
+            style={{ color: '#1a120b' }}
+          >
             Читать
           </button>
         </Link>

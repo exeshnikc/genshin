@@ -12,20 +12,19 @@ interface Book {
   coverUrl: string
 }
 
+type Tab = 'favorites' | 'collected'
+
 export default function ProfilePage() {
   const router = useRouter()
   const [user, setUser] = useState<any>(null)
   const [favorites, setFavorites] = useState<Book[]>([])
   const [collected, setCollected] = useState<Book[]>([])
-  const [activeTab, setActiveTab] = useState<'favorites' | 'collected'>('favorites')
+  const [activeTab, setActiveTab] = useState<Tab>('favorites')
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     const userData = localStorage.getItem('user')
-    if (!userData) {
-      router.push('/auth')
-      return
-    }
+    if (!userData) { router.push('/auth'); return }
     setUser(JSON.parse(userData))
     loadData()
   }, [])
@@ -33,8 +32,8 @@ export default function ProfilePage() {
   const loadData = async () => {
     setLoading(true)
     await Promise.all([
-      fetch('/api/favorites').then(res => res.json()).then(setFavorites),
-      fetch('/api/collected').then(res => res.json()).then(setCollected)
+      fetch('/api/favorites').then(r => r.json()).then(setFavorites),
+      fetch('/api/collected').then(r => r.json()).then(setCollected),
     ])
     setLoading(false)
   }
@@ -63,140 +62,260 @@ export default function ProfilePage() {
     router.push('/auth')
   }
 
-  if (!user) return <div className="p-8 text-center">Загрузка...</div>
+  if (!user) return null
+
+  const displayBooks = activeTab === 'favorites' ? favorites : collected
+  const removeBook = activeTab === 'favorites' ? removeFromFavorites : removeFromCollected
+
+  const progress = collected.length + favorites.length > 0
+    ? Math.round((collected.length / Math.max(collected.length + favorites.length, 1)) * 100)
+    : 0
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-[#1a0f0a] to-[#0d0805] py-12 px-8">
-      <div className="max-w-6xl mx-auto">
-        {/* Карточка профиля */}
-        <div className="bg-gradient-to-br from-[#2f241b] to-[#1f1812] rounded-2xl p-8 mb-8 border border-[#e4b574]/20 shadow-2xl">
-          <div className="flex justify-between items-start flex-wrap gap-4">
-            <div>
-              <div className="flex items-center gap-3 mb-2">
-                <div className="w-12 h-12 bg-gradient-to-br from-[#e4b574] to-[#c49a4a] rounded-xl flex items-center justify-center">
-                  <span className="text-[#1a120b] text-xl font-bold">К</span>
+    <div
+      className="min-h-screen py-10 px-6"
+      style={{ background: 'linear-gradient(to bottom, var(--bg-primary), var(--bg-secondary))' }}
+    >
+      <div className="max-w-6xl mx-auto space-y-6">
+        <div
+          className="rounded-2xl border p-8 shadow-2xl"
+          style={{
+            background: 'linear-gradient(135deg, var(--bg-card), var(--bg-card-deep))',
+            borderColor: 'var(--border)',
+            animation: 'fadeInUp 0.4s ease forwards',
+          }}
+        >
+          <div className="flex flex-wrap justify-between items-start gap-6">
+            <div className="flex items-center gap-5">
+              <div className="relative">
+                <div
+                  className="w-20 h-20 rounded-2xl flex items-center justify-center text-3xl font-bold shadow-lg"
+                  style={{
+                    background: 'linear-gradient(135deg, var(--accent), var(--accent-dim))',
+                    color: '#1a120b',
+                    boxShadow: '0 0 20px var(--glow)',
+                  }}
+                >
+                  {user.name.charAt(0).toUpperCase()}
                 </div>
-                <h1 className="text-3xl font-bold font-[Cinzel] text-[#e4b574]">Личный кабинет</h1>
+                {user.role === 'ADMIN' && (
+                  <div
+                    className="absolute -bottom-1 -right-1 text-xs px-2 py-0.5 rounded-full font-bold"
+                    style={{ background: 'var(--accent)', color: '#1a120b' }}
+                  >
+                    ADM
+                  </div>
+                )}
               </div>
-              <p className="text-[#b98b5f] mt-2">Добро пожаловать, <span className="text-[#e4b574]">{user.name}</span></p>
-              <p className="text-[#b98b5f] text-sm mt-1">Email: {user.email}</p>
-              <p className="text-[#b98b5f] text-sm">Роль: {user.role === 'ADMIN' ? 'Администратор' : 'Пользователь'}</p>
+              <div>
+                <h1 className="text-2xl font-bold font-[Cinzel]" style={{ color: 'var(--accent)' }}>
+                  {user.name}
+                </h1>
+                <p className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>
+                  {user.email}
+                </p>
+                <p className="text-xs mt-1" style={{ color: 'var(--text-secondary)' }}>
+                  Роль: {user.role === 'ADMIN' ? 'Администратор' : 'Пользователь'}
+                </p>
+              </div>
             </div>
-            <button
-              onClick={logout}
-              className="px-6 py-2 bg-[#2f241b] border border-[#b98b5f] hover:border-[#e4b574] text-[#f0e0c0] rounded-xl transition"
-            >
-              Выйти из аккаунта
-            </button>
+
+            <div className="flex flex-col gap-3 items-end">
+              <button
+                onClick={logout}
+                className="px-5 py-2 rounded-xl border transition-all hover:scale-105 text-sm"
+                style={{
+                  background: 'var(--bg-card)',
+                  borderColor: 'var(--text-secondary)',
+                  color: 'var(--text-primary)',
+                }}
+                onMouseEnter={e => (e.currentTarget.style.borderColor = 'var(--accent)')}
+                onMouseLeave={e => (e.currentTarget.style.borderColor = 'var(--text-secondary)')}
+              >
+                Выйти из аккаунта
+              </button>
+              {user.role === 'ADMIN' && (
+                <Link
+                  href="/admin"
+                  className="px-5 py-2 rounded-xl text-sm font-medium transition-all hover:scale-105"
+                  style={{
+                    background: 'linear-gradient(135deg, var(--accent), var(--accent-dim))',
+                    color: '#1a120b',
+                  }}
+                >
+                  Админ-панель
+                </Link>
+              )}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-3 gap-4 mt-6">
+            {[
+              { label: 'Избранных', value: favorites.length },
+              { label: 'Собрано', value: collected.length },
+              { label: 'Прогресс', value: `${progress}%` },
+            ].map(stat => (
+              <div
+                key={stat.label}
+                className="rounded-xl p-4 text-center border"
+                style={{
+                  background: 'color-mix(in srgb, var(--accent) 5%, transparent)',
+                  borderColor: 'var(--border)',
+                }}
+              >
+                <div className="text-2xl font-bold" style={{ color: 'var(--accent)' }}>
+                  {stat.value}
+                </div>
+                <div className="text-xs mt-1" style={{ color: 'var(--text-secondary)' }}>
+                  {stat.label}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="mt-4">
+            <div className="flex justify-between text-xs mb-1" style={{ color: 'var(--text-secondary)' }}>
+              <span>Прогресс коллекции</span>
+              <span>{collected.length}/{collected.length + favorites.length}</span>
+            </div>
+            <div className="h-2 rounded-full overflow-hidden" style={{ background: 'var(--bg-input)' }}>
+              <div
+                className="h-full rounded-full transition-all duration-700"
+                style={{
+                  width: `${progress}%`,
+                  background: 'linear-gradient(90deg, var(--accent), var(--accent-dim))',
+                }}
+              />
+            </div>
           </div>
         </div>
 
-        {/* Вкладки */}
-        <div className="bg-gradient-to-br from-[#2f241b] to-[#1f1812] rounded-2xl border border-[#e4b574]/20 overflow-hidden">
-          <div className="flex border-b border-[#e4b574]/20">
-            <button
-              onClick={() => setActiveTab('favorites')}
-              className={`flex-1 py-4 text-center font-medium transition ${
-                activeTab === 'favorites'
-                  ? 'bg-gradient-to-r from-[#e4b574]/20 to-transparent text-[#e4b574] border-b-2 border-[#e4b574]'
-                  : 'text-[#b98b5f] hover:bg-[#e4b574]/10'
-              }`}
-            >
-              Избранное ({favorites.length})
-            </button>
-            <button
-              onClick={() => setActiveTab('collected')}
-              className={`flex-1 py-4 text-center font-medium transition ${
-                activeTab === 'collected'
-                  ? 'bg-gradient-to-r from-[#e4b574]/20 to-transparent text-[#e4b574] border-b-2 border-[#e4b574]'
-                  : 'text-[#b98b5f] hover:bg-[#e4b574]/10'
-              }`}
-            >
-              Собранные книги ({collected.length})
-            </button>
+        <div
+          className="rounded-2xl border overflow-hidden shadow-xl"
+          style={{
+            background: 'var(--bg-card)',
+            borderColor: 'var(--border)',
+            animation: 'fadeInUp 0.5s ease forwards',
+          }}
+        >
+          <div className="flex border-b" style={{ borderColor: 'var(--border)' }}>
+            {([
+              { key: 'favorites' as Tab, label: 'Избранное', count: favorites.length },
+              { key: 'collected' as Tab, label: 'Собранные книги', count: collected.length },
+            ]).map(tab => (
+              <button
+                key={tab.key}
+                onClick={() => setActiveTab(tab.key)}
+                className="flex-1 py-4 text-sm font-medium transition-all flex items-center justify-center gap-2"
+                style={{
+                  color: activeTab === tab.key ? 'var(--accent)' : 'var(--text-secondary)',
+                  borderBottom: activeTab === tab.key ? '2px solid var(--accent)' : '2px solid transparent',
+                  background: activeTab === tab.key
+                    ? 'color-mix(in srgb, var(--accent) 8%, transparent)'
+                    : 'transparent',
+                }}
+              >
+                {tab.label}
+                <span
+                  className="px-2 py-0.5 rounded-full text-xs"
+                  style={{
+                    background: activeTab === tab.key
+                      ? 'color-mix(in srgb, var(--accent) 20%, transparent)'
+                      : 'var(--bg-input)',
+                    color: activeTab === tab.key ? 'var(--accent)' : 'var(--text-secondary)',
+                  }}
+                >
+                  {tab.count}
+                </span>
+              </button>
+            ))}
           </div>
 
-          <div className="p-8">
+          <div className="p-6">
             {loading ? (
-              <div className="text-center py-12">
-                <div className="inline-block w-8 h-8 border-2 border-[#e4b574] border-t-transparent rounded-full animate-spin"></div>
-                <p className="text-[#b98b5f] mt-4">Загрузка...</p>
+              <div className="flex flex-col items-center gap-3 py-16">
+                <div
+                  className="w-10 h-10 rounded-full border-2 border-t-transparent"
+                  style={{ borderColor: 'var(--accent)', animation: 'spin-slow 1s linear infinite' }}
+                />
+                <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>Загрузка...</p>
               </div>
-            ) : activeTab === 'favorites' ? (
-              favorites.length === 0 ? (
-                <div className="text-center py-12">
-                  <div className="text-5xl mb-4">📚</div>
-                  <p className="text-[#b98b5f]">Нет избранных книг</p>
-                  <Link href="/" className="inline-block mt-4 px-6 py-2 bg-gradient-to-r from-[#e4b574] to-[#c49a4a] rounded-xl text-[#1a120b] font-medium hover:scale-105 transition">
-                    Перейти к каталогу
-                  </Link>
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {favorites.map((book) => (
-                    <div key={book.id} className="bg-[#1a120b] rounded-xl p-5 border border-[#e4b574]/20 hover:border-[#e4b574]/50 transition">
-                      <h3 className="text-lg font-bold text-[#e4b574]">{book.title}</h3>
-                      <p className="text-[#b98b5f] text-sm mt-1">Автор: {book.author}</p>
-                      <p className="text-[#b98b5f] text-sm">Регион: {book.region}</p>
-                      <div className="flex gap-3 mt-4">
-                        <Link href={`/book/${book.id}`} className="flex-1 text-center px-4 py-2 bg-gradient-to-r from-[#e4b574] to-[#c49a4a] rounded-lg text-[#1a120b] font-medium hover:scale-105 transition">
-                          Читать
-                        </Link>
-                        <button
-                          onClick={() => removeFromFavorites(book.id)}
-                          className="px-4 py-2 bg-[#2f241b] border border-[#b98b5f] rounded-lg text-[#b98b5f] hover:border-red-500 hover:text-red-500 transition"
-                        >
-                          Удалить
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )
+            ) : displayBooks.length === 0 ? (
+              <div className="text-center py-16">
+                <p style={{ color: 'var(--text-secondary)' }}>
+                  {activeTab === 'favorites' ? 'Нет избранных книг' : 'Нет собранных книг'}
+                </p>
+                <Link
+                  href="/"
+                  className="inline-block mt-4 px-6 py-2 rounded-xl font-medium transition hover:scale-105"
+                  style={{
+                    background: 'linear-gradient(135deg, var(--accent), var(--accent-dim))',
+                    color: '#1a120b',
+                  }}
+                >
+                  Перейти к каталогу
+                </Link>
+              </div>
             ) : (
-              collected.length === 0 ? (
-                <div className="text-center py-12">
-                  <div className="text-5xl mb-4">📖</div>
-                  <p className="text-[#b98b5f]">Нет собранных книг</p>
-                  <Link href="/" className="inline-block mt-4 px-6 py-2 bg-gradient-to-r from-[#e4b574] to-[#c49a4a] rounded-xl text-[#1a120b] font-medium hover:scale-105 transition">
-                    Перейти к каталогу
-                  </Link>
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {collected.map((book) => (
-                    <div key={book.id} className="bg-[#1a120b] rounded-xl p-5 border border-[#e4b574]/20 hover:border-[#e4b574]/50 transition">
-                      <h3 className="text-lg font-bold text-[#e4b574]">{book.title}</h3>
-                      <p className="text-[#b98b5f] text-sm mt-1">Автор: {book.author}</p>
-                      <p className="text-[#b98b5f] text-sm">Регион: {book.region}</p>
-                      <div className="flex gap-3 mt-4">
-                        <Link href={`/book/${book.id}`} className="flex-1 text-center px-4 py-2 bg-gradient-to-r from-[#e4b574] to-[#c49a4a] rounded-lg text-[#1a120b] font-medium hover:scale-105 transition">
-                          Читать
-                        </Link>
-                        <button
-                          onClick={() => removeFromCollected(book.id)}
-                          className="px-4 py-2 bg-[#2f241b] border border-[#b98b5f] rounded-lg text-[#b98b5f] hover:border-red-500 hover:text-red-500 transition"
-                        >
-                          Удалить
-                        </button>
-                      </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {displayBooks.map((book, idx) => (
+                  <div
+                    key={book.id}
+                    className="rounded-xl p-4 border transition-all hover:scale-[1.01]"
+                    style={{
+                      background: 'var(--bg-card-deep)',
+                      borderColor: 'var(--border)',
+                      animation: `fadeInUp ${0.1 + idx * 0.05}s ease forwards`,
+                    }}
+                    onMouseEnter={e => (e.currentTarget.style.borderColor = 'var(--border-strong)')}
+                    onMouseLeave={e => (e.currentTarget.style.borderColor = 'var(--border)')}
+                  >
+                    <h3 className="font-bold font-[Cinzel] text-base leading-snug mb-1" style={{ color: 'var(--accent)' }}>
+                      {book.title}
+                    </h3>
+                    <p className="text-xs mb-0.5" style={{ color: 'var(--text-secondary)' }}>
+                      {book.author}
+                    </p>
+                    <p className="text-xs mb-4" style={{ color: 'var(--text-secondary)' }}>
+                      {book.region}
+                    </p>
+                    <div className="flex gap-2">
+                      <Link
+                        href={`/book/${book.id}`}
+                        className="flex-1 text-center py-2 rounded-lg text-xs font-bold transition hover:scale-105"
+                        style={{
+                          background: 'linear-gradient(135deg, var(--accent), var(--accent-dim))',
+                          color: '#1a120b',
+                        }}
+                      >
+                        Читать
+                      </Link>
+                      <button
+                        onClick={() => removeBook(book.id)}
+                        className="px-3 py-2 rounded-lg text-xs border transition hover:scale-105"
+                        style={{
+                          background: 'var(--bg-card)',
+                          borderColor: 'var(--text-secondary)',
+                          color: 'var(--text-secondary)',
+                        }}
+                        onMouseEnter={e => {
+                          e.currentTarget.style.borderColor = '#ef4444'
+                          e.currentTarget.style.color = '#ef4444'
+                        }}
+                        onMouseLeave={e => {
+                          e.currentTarget.style.borderColor = 'var(--text-secondary)'
+                          e.currentTarget.style.color = 'var(--text-secondary)'
+                        }}
+                      >
+                        Удалить
+                      </button>
                     </div>
-                  ))}
-                </div>
-              )
+                  </div>
+                ))}
+              </div>
             )}
           </div>
         </div>
-
-        {user.role === 'ADMIN' && (
-          <div className="mt-8">
-            <Link href="/admin">
-              <button className="w-full py-4 bg-gradient-to-r from-[#e4b574]/20 to-transparent border border-[#e4b574]/30 rounded-xl text-[#e4b574] font-medium hover:bg-[#e4b574]/10 transition">
-                Перейти в административную панель
-              </button>
-            </Link>
-          </div>
-        )}
       </div>
     </div>
   )

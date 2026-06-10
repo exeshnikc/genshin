@@ -4,50 +4,35 @@ generator client {
 
 datasource db {
   provider = "sqlite"
-  url      = env("DATABASE_URL")
+  url      = "file:./dev.db"
 }
 
 model User {
   id        String   @id @default(cuid())
-  name      String
   email     String   @unique
+  name      String
   password  String
-  role      String   @default("USER")  // USER или ADMIN
   createdAt DateTime @default(now())
-  
-  favorites   Favorite[]
-  collected   Collected[]
+  favorites Favorite[]
 }
 
 model Book {
-  id          String   @id @default(cuid())
-  title       String
-  author      String
-  region      String
-  content     String
-  coverUrl    String
-  createdAt   DateTime @default(now())
-  
-  favorites   Favorite[]
-  collected   Collected[]
+  id        String   @id @default(cuid())
+  title     String
+  author    String
+  region    String
+  content   String
+  coverUrl  String?
+  sourceUrl String?
+  createdAt DateTime @default(now())
+  favorites Favorite[]
 }
 
 model Favorite {
   id        String   @id @default(cuid())
   userId    String
   bookId    String
-  addedAt   DateTime @default(now())
-  
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-  book Book @relation(fields: [bookId], references: [id], onDelete: Cascade)
-}
-
-model Collected {
-  id        String   @id @default(cuid())
-  userId    String
-  bookId    String
-  addedAt   DateTime @default(now())
-  
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-  book Book @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id])
+  book      Book     @relation(fields: [bookId], references: [id])
 }

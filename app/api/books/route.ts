@@ -1,26 +1,21 @@
-import { NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
+import { NextResponse } from 'next/server';
+import * as genshindb from 'genshin-db';
 
-export async function GET(request: Request) {
+export async function GET() {
   try {
-    const { searchParams } = new URL(request.url)
-    const search = searchParams.get('search') || ''
-    const region = searchParams.get('region') || ''
-
-    const where: any = {}
-
-    if (search) {
-      where.title = { contains: search }
-    }
-
-    if (region && region !== 'Все') {
-      where.region = region
-    }
-
-    const books = await prisma.book.findMany({ where })
-    return NextResponse.json(books)
+    const books = genshindb.books('all', { matchCategories: true, verbose: false });
+    
+    const formatted = books.map((book: any) => ({
+      id: book.id,
+      title: book.name,
+      author: book.author || 'Неизвестный автор',
+      region: book.region || 'Teyvat',
+      description: book.description,
+      coverUrl: book.cover || null
+    }));
+    
+    return NextResponse.json({ books: formatted });
   } catch (error) {
-    console.error('Ошибка API:', error)
-    return NextResponse.json({ error: 'Ошибка сервера' }, { status: 500 })
+    return NextResponse.json({ books: [] });
   }
 }

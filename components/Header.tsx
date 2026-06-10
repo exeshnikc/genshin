@@ -1,79 +1,99 @@
-'use client'
+'use client';
 
-import { useEffect, useState } from 'react'
-import Link from 'next/link'
-import { useRouter } from 'next/navigation'
+import { useState, useEffect } from 'react';
+import Link from 'next/link';
 
 export default function Header() {
-  const router = useRouter()
-  const [user, setUser] = useState<any>(null)
+  const [user, setUser] = useState<any>(null);
+  const [showAuth, setShowAuth] = useState(false);
+  const [isLogin, setIsLogin] = useState(true);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [name, setName] = useState('');
 
   useEffect(() => {
-    const userData = localStorage.getItem('user')
-    if (userData) setUser(JSON.parse(userData))
-  }, [])
+    const token = localStorage.getItem('token');
+    const userData = localStorage.getItem('user');
+    if (token && userData) {
+      setUser(JSON.parse(userData));
+    }
+  }, []);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const endpoint = isLogin ? '/api/auth/login' : '/api/auth/register';
+    const body = isLogin ? { email, password } : { name, email, password };
+
+    const res = await fetch(endpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+
+    const data = await res.json();
+    if (res.ok) {
+      localStorage.setItem('token', data.token);
+      localStorage.setItem('user', JSON.stringify(data.user));
+      setUser(data.user);
+      setShowAuth(false);
+      window.location.reload();
+    } else {
+      alert(data.error);
+    }
+  };
 
   const logout = () => {
-    document.cookie = 'token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT'
-    localStorage.removeItem('user')
-    setUser(null)
-    router.push('/')
-  }
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    setUser(null);
+    window.location.reload();
+  };
 
   return (
-    <header className="sticky top-0 z-50 bg-gradient-to-r from-[#1a0f0a]/95 to-[#0d0805]/95 backdrop-blur-md border-b border-[#e4b574]/30">
-      <div className="max-w-7xl mx-auto px-8 py-4 flex justify-between items-center">
-        <Link href="/" className="group flex items-center gap-2">
-          <div className="w-10 h-10 bg-gradient-to-br from-[#e4b574] to-[#c49a4a] rounded-xl flex items-center justify-center shadow-lg group-hover:scale-105 transition">
-            <span className="text-[#1a120b] text-xl font-bold">К</span>
-          </div>
-          <span className="text-2xl font-bold font-[Cinzel] bg-gradient-to-r from-[#e4b574] to-[#f0e0c0] bg-clip-text text-transparent">
-            Genshin Library
-          </span>
-        </Link>
-
-        <nav className="flex gap-8">
-          <Link href="/" className="text-[#f0e0c0] hover:text-[#e4b574] transition">
-            Каталог
-          </Link>
-          {user && user.role === 'ADMIN' && (
-            <Link href="/admin" className="text-[#f0e0c0] hover:text-[#e4b574] transition">
-              Админ-панель
-            </Link>
-          )}
-          {user && (
-            <Link href="/profile" className="text-[#f0e0c0] hover:text-[#e4b574] transition">
-              Профиль
-            </Link>
-          )}
-        </nav>
-
-        <div className="flex items-center gap-4">
+    <>
+      <nav className="navbar">
+        <Link href="/" className="logo">📚 Библиотека Teyvat</Link>
+        <div className="nav-links">
+          <Link href="/">Главная</Link>
+          <Link href="/catalog">Каталог</Link>
+          {user && <Link href="/admin">Админ</Link>}
           {user ? (
             <>
-              <div className="flex items-center gap-2 px-3 py-1.5 bg-[#e4b574]/10 rounded-xl border border-[#e4b574]/30">
-                <div className="w-6 h-6 bg-gradient-to-br from-[#e4b574] to-[#c49a4a] rounded-lg flex items-center justify-center">
-                  <span className="text-[#1a120b] text-xs">✦</span>
-                </div>
-                <span className="text-[#e4b574] text-sm">{user.name}</span>
-              </div>
-              <button
-                onClick={logout}
-                className="px-4 py-1.5 bg-[#2f241b] border border-[#b98b5f] hover:border-[#e4b574] text-[#f0e0c0] rounded-xl transition-all hover:scale-105"
-              >
-                Выйти
-              </button>
+              <span style={{ color: 'var(--gold)' }}>{user.name}</span>
+              <button className="btn btn-outline" onClick={logout}>Выйти</button>
             </>
           ) : (
-            <Link
-              href="/auth"
-              className="px-6 py-1.5 bg-gradient-to-r from-[#e4b574] to-[#c49a4a] rounded-xl text-[#1a120b] font-bold hover:scale-105 transition"
-            >
-              Войти
-            </Link>
+            <>
+              <button className="btn btn-outline" onClick={() => { setIsLogin(true); setShowAuth(true); }}>Войти</button>
+              <button className="btn btn-gold" onClick={() => { setIsLogin(false); setShowAuth(true); }}>Регистрация</button>
+            </>
           )}
         </div>
-      </div>
-    </header>
-  )
+      </nav>
+
+      {showAuth && (
+        <div className="modal-overlay" onClick={() => setShowAuth(false)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <h2>{isLogin ? 'Вход' : 'Регистрация'}</h2>
+            <form onSubmit={handleSubmit}>
+              {!isLogin && (
+                <input type="text" placeholder="Имя" value={name} onChange={(e) => setName(e.target.value)} required />
+              )}
+              <input type="email" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} required />
+              <input type="password" placeholder="Пароль" value={password} onChange={(e) => setPassword(e.target.value)} required />
+              <button type="submit" className="btn btn-gold" style={{ width: '100%' }}>
+                {isLogin ? 'Войти' : 'Зарегистрироваться'}
+              </button>
+            </form>
+            <p style={{ textAlign: 'center', marginTop: '1rem', fontSize: '0.8rem' }}>
+              {isLogin ? 'Нет аккаунта? ' : 'Уже есть аккаунт? '}
+              <button onClick={() => setIsLogin(!isLogin)} style={{ color: 'var(--gold)', background: 'none', border: 'none', cursor: 'pointer' }}>
+                {isLogin ? 'Зарегистрироваться' : 'Войти'}
+              </button>
+            </p>
+          </div>
+        </div>
+      )}
+    </>
+  );
 }

@@ -1,38 +1,25 @@
-import { NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
-import bcrypt from 'bcryptjs'
+import { NextResponse } from 'next/server';
+import { PrismaClient } from '@prisma/client';
+import bcrypt from 'bcryptjs';
+import jwt from 'jsonwebtoken';
 
-export async function POST(request: Request) {
-  try {
-    const { name, email, password } = await request.json()
+const prisma = new PrismaClient();
 
-    const existingUser = await prisma.user.findUnique({
-      where: { email }
-    })
-
-    if (existingUser) {
-      return NextResponse.json({ error: 'Пользователь уже существует' }, { status: 400 })
-    }
-
-    const hashedPassword = await bcrypt.hash(password, 10)
-
-    const user = await prisma.user.create({
-      data: {
-        name,
-        email,
-        password: hashedPassword,
-        role: 'USER'
-      }
-    })
-
-    return NextResponse.json({
-      id: user.id,
-      name: user.name,
-      email: user.email,
-      role: user.role
-    })
-  } catch (error) {
-    console.error(error)
-    return NextResponse.json({ error: 'Ошибка сервера' }, { status: 500 })
+export async function POST(req: Request) {
+  const { email, password, name } = await req.json();
+  
+  const existing = await prisma.user.findUnique({ where: { email } });
+  if (existing) {
+    return NextResponse.json({ error: 'Email уже используется' }, { status: 400 });
   }
+  
+  const hashedPassword = await bcrypt.hash(password, 10);
+  
+  const user = await prisma.user.create({
+    data: { email, name: name || email.split('@')[0], password: hashedPassword }
+  });
+  
+  const token = jwt.sign({ userId: user.id }, 'secret-key', { expiresIn: '7d' });
+  
+  return NextResponse.json({ token, user: { id: user.id, email: user.email, name: user.name } });
 }
